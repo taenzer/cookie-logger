@@ -7,5 +7,6 @@
         "service_worker": "src/background/index.js",
         "type": "module"
     },
-    "permissions": ["scripting", "activeTab"]
+    "permissions": ["scripting", "activeTab", "tabs", "cookies", "webRequest"],
+    "host_permissions": ["https://*/*", "http://*/*"]
 }
