@@ -1,36 +1,41 @@
 {
-  "name": "",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
-  "license": "AGPL-version-3.0",
-  "private": false,
-  "engines": {
-    "node": ">= 14.0.0",
-    "npm": ">= 6.0.0"
-  },
-  "homepage": "",
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "bugs": "",
-  "keywords": [],
-  "author": {
     "name": "",
-    "email": "",
-    "url": ""
-  },
-  "contributors": [],
-  "scripts": {
-    "clean": "rm -rf dist",
-    "compile": "npx tsc",
-    "copy-assets": "rsync -av --exclude 'tsconfig.json' --exclude 'src' --exclude 'dist' ./ dist/",
-    "build": "npm run clean && npm run compile && npm run copy-assets"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.1.33",
-    "typescript": "^5.9.3"
-  }
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "license": "AGPL-version-3.0",
+    "private": false,
+    "engines": {
+        "node": ">= 14.0.0",
+        "npm": ">= 6.0.0"
+    },
+    "homepage": "",
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "bugs": "",
+    "keywords": [],
+    "author": {
+        "name": "",
+        "email": "",
+        "url": ""
+    },
+    "contributors": [],
+    "scripts": {
+        "clean": "rm -rf dist",
+        "copy-assets": "rsync -av --exclude 'tsconfig.json' --exclude 'esbuild.config.mjs' --exclude '.prettierrc' --exclude '.gitignore' --exclude 'src' --exclude 'dist' ./ dist/",
+        "build": "npm run clean &&  node esbuild.config.mjs && npm run copy-assets",
+        "watch": "node esbuild.config.mjs --watch",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.1.33",
+        "esbuild": "^0.27.2",
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "prettier": "^3.7.4"
+    }
 }

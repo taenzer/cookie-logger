@@ -10,10 +10,16 @@ export type TabEvent = {
 
 export type TabEventMeta = {
     cookieData?: CookieData;
+    clickData?: {
+        cssSelector?: string;
+        text?: string;
+        mouseButton?: number;
+    };
 };
 
 export enum TabEventType {
     CookieChanged = 'cookie-changed',
     SessionStart = 'session-started',
-    SetCookieViaHeader = 'set-cookie-via-header'
+    SetCookieViaHeader = 'set-cookie-via-header',
+    Click = 'user-click'
 }

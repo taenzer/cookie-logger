@@ -1,8 +1,11 @@
 // ### EVENT LISTENERS
 
-import type { CookieData } from './types/cookie-data.js';
-import type { Session } from './types/session.js';
-import { TabEventType, type TabEvent } from './types/tab_event.js';
+import type { CookieData } from '../types/cookie-data.js';
+import { MessageType, type Message } from '../types/message.js';
+import type { Session } from '../types/session.js';
+import { TabEventType, type TabEvent } from '../types/tab_event.js';
+import { categorizeCookie, initCookieDb } from './helper/cookie-db.js';
+import { parseCookieHeader } from './helper/cookie-parser.js';
 
 /**
  * Event Listener - Gets fired, when extension icon is clicked
@@ -51,6 +54,22 @@ chrome.webRequest.onHeadersReceived.addListener(
     ['responseHeaders', 'extraHeaders']
 );
 
+chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
+    const tabId = sender?.tab?.id;
+    if (!tabId) return;
+
+    if (msg.type == MessageType.GetSession) {
+        const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
+        sendResponse(session);
+        return true;
+    }
+
+    const session = findSession(tabId);
+    if (!session || !msg.payload) return;
+
+    logEvent(session, msg.payload);
+});
+
 // ### FUNCTIONS
 
 function evaluateHeaders(
@@ -66,17 +85,11 @@ function evaluateHeaders(
         .map((h) => h.value);
 
     for (const header of setCookieHeaders) {
-        // Try to get name of cookie (first part of header value is name=value;)
-        const firstPart: string = header!.split(';')[0] ?? '';
-        const eqIndex = firstPart.indexOf('=');
-        const name = eqIndex > 0 ? firstPart.slice(0, eqIndex).trim() : null;
+        if (!header) continue;
 
-        // If name could not be determined, skip header
-        if (!name) continue;
+        const cookieData: CookieData | null = registerCookie(session, header);
 
-        const cookieData: CookieData = {
-            name: name
-        };
+        if (!cookieData) continue;
 
         logEvent(session, {
             sessionId: session.sessionId,
@@ -88,6 +101,21 @@ function evaluateHeaders(
             }
         });
     }
+}
+
+function registerCookie(session: Session, header: string): CookieData | null {
+    let cookieData = parseCookieHeader(header);
+
+    // If the header could be parsed, try to categorize the cookie
+    if (cookieData) {
+        cookieData = categorizeCookie(cookieData);
+        if (!session.cookies) {
+            session.cookies = new Map();
+        }
+        session.cookies.set(cookieData.signature!, cookieData);
+    }
+
+    return cookieData;
 }
 
 function ensureSession(tabId: number, url: string): Session {
@@ -142,6 +170,20 @@ function createSessionId(tabId: number): string {
     return `${tabId}-${nowMs()}-${Math.random().toString(16).slice(2)}`;
 }
 
+async function init() {
+    await initCookieDb();
+
+    chrome.action.setBadgeText({
+        text: 'RDY'
+    });
+
+    chrome.action.setBadgeBackgroundColor({
+        color: 'green'
+    });
+}
+
 // ### DATA
 
 const sessions: Map<number, Session> = new Map();
+
+init();
