@@ -2,7 +2,10 @@
     "manifest_version": 3,
     "name": "Cookie Logger",
     "version": "1.0.0",
-    "action": {},
+    "action": {
+        "default_popup": "/assets/popup.html",
+        "default_title": "Cookie Logger"
+    },
     "background": {
         "service_worker": "src/background/index.js",
         "type": "module"

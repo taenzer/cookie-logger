@@ -15,12 +15,21 @@ await Promise.all([
         outdir: 'dist/src/background',
         format: 'esm',
         platform: 'browser',
+
     }),
 
     esbuild.build({
         ...common,
         entryPoints: ['src/content/**/*'],
         outdir: 'dist/src/content',
+        format: 'iife',
+        platform: 'browser',
+
+    }),
+    esbuild.build({
+        ...common,
+        entryPoints: ['src/popup/popup.ts'],
+        outfile: 'dist/src/popup/popup.js',
         format: 'iife',
         platform: 'browser',
     })

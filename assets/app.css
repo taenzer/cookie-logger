@@ -1,0 +1,25 @@
+.w-full{
+    width: 100%;
+}
+
+body {
+    padding: 20px;
+}
+
+#cookieCounter{
+    display: flex;
+    gap: 10px;
+}
+
+#cookieCounter > div > p:first-child {
+    font-weight: 600;
+    margin: 0;
+}
+
+#error > p {
+    padding: 10px;
+    background: #ff000030;
+    border-radius: 5px;
+    border: solid red 1px;
+    color: #d70000;
+}

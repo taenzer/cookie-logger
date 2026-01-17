@@ -8,3 +8,7 @@ export type Session = {
     url: string;
     cookies?: Map<string, CookieData>;
 };
+
+export type TransferableSession = Session & {
+    cookies?: CookieData[];
+};

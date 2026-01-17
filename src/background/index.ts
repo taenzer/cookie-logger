@@ -31,6 +31,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.cookies.onChanged.addListener((changeInfo) => {
     const { cookie, removed, cause } = changeInfo;
+    // console.log('COOKIE CHANGE', cookie);
 });
 
 chrome.webRequest.onHeadersReceived.addListener(
@@ -55,6 +56,20 @@ chrome.webRequest.onHeadersReceived.addListener(
 );
 
 chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
+    if (msg.type == MessageType.GetSessionData) {
+        const session = findSession(msg.tabId!);
+        if (session) {
+            sendResponse({
+                ...session,
+                cookies: session?.cookies?.values().toArray() ?? []
+            });
+            console.log(session);
+        } else {
+            sendResponse();
+        }
+        return true;
+    }
+
     const tabId = sender?.tab?.id;
     if (!tabId) return;
 
@@ -147,7 +162,7 @@ function ensureSession(tabId: number, url: string): Session {
         });
     }
 
-    return sessions.get(tabId)!;
+    return findSession(tabId)!;
 }
 
 function findSession(tabId: number): Session | undefined {
