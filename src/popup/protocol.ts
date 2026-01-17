@@ -139,7 +139,7 @@ export function renderProtocol(events: TabEvent[]): void {
 
         if (e.type == TabEventType.Click) {
             const txt = safeSnippet(e.meta?.clickData?.text, 140);
-            const details = txt ? ` | "${txt}"` : '';
+            const details = txt ?? '';
             addListItem([`Click (${details})`]);
             return;
         }

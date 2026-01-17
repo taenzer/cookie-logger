@@ -4,8 +4,16 @@ import { TabEventType, type TabEvent } from '../types/tab_event.js';
 
 let session: Session;
 
-window.addEventListener('click', (event) => {
-    if (!session) return;
+const opts: AddEventListenerOptions = { capture: true, passive: true };
+
+document.addEventListener('click', clickHandler, opts);
+
+function clickHandler(event: MouseEvent) {
+    if (!session) {
+        console.log('CLICK WITHOUT SESSION');
+        return;
+    }
+    console.log('CLICK');
     const target = event.target;
     const text = (getTargetElementText(target) ?? '').slice(0, 120);
 
@@ -27,7 +35,7 @@ window.addEventListener('click', (event) => {
         type: MessageType.Click,
         payload: tabEvent
     });
-});
+}
 
 function cssPath(input: EventTarget | null): string {
     if (!(input instanceof HTMLElement)) return '';
