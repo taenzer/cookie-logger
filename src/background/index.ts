@@ -136,6 +136,15 @@ function ensureSession(tabId: number, url: string): Session {
             type: TabEventType.SessionStart,
             url: url
         });
+        chrome.action.setBadgeText({
+            text: 'REC',
+            tabId: tabId
+        });
+
+        chrome.action.setBadgeBackgroundColor({
+            color: 'red',
+            tabId: tabId
+        });
     }
 
     return sessions.get(tabId)!;
