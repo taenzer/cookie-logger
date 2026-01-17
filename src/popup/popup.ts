@@ -13,8 +13,6 @@ async function render() {
     await loadSession();
     displayCookieCount();
     renderProtocol(session?.events ?? []);
-
-    document.getElementById('refreshButton')?.addEventListener('click', render);
 }
 
 function displayCookieCount() {
@@ -70,4 +68,18 @@ async function getActiveTabId(): Promise<number> {
     return tabId;
 }
 
-render();
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('refreshButton')?.addEventListener('click', render);
+    document
+        .getElementById('restartButton')
+        ?.addEventListener('click', async () => {
+            const tabId = await getActiveTabId();
+
+            chrome.runtime.sendMessage<Message, void>({
+                type: MessageType.RestartSession,
+                tabId: tabId
+            });
+            window.close();
+        });
+    render();
+});

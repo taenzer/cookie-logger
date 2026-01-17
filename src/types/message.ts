@@ -10,5 +10,6 @@ export enum MessageType {
     JsCookieSet = 'js-cookie-set',
     Click = 'click',
     GetSession = 'get-session',
-    GetSessionData = 'get-session-data'
+    GetSessionData = 'get-session-data',
+    RestartSession = 'restart-session'
 }

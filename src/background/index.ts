@@ -55,37 +55,70 @@ chrome.webRequest.onHeadersReceived.addListener(
     ['responseHeaders', 'extraHeaders']
 );
 
-chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
-    if (msg.type == MessageType.GetSessionData) {
-        const session = findSession(msg.tabId!);
-        if (session) {
-            sendResponse({
-                ...session,
-                cookies: session?.cookies?.values().toArray() ?? []
-            });
-            console.log(session);
-        } else {
-            sendResponse();
+chrome.runtime.onMessage.addListener(
+    async (msg: Message, sender, sendResponse) => {
+        if (msg.type == MessageType.GetSessionData) {
+            const session = findSession(msg.tabId!);
+            if (session) {
+                sendResponse({
+                    ...session,
+                    cookies: session?.cookies?.values().toArray() ?? []
+                });
+                console.log(session);
+            } else {
+                sendResponse();
+            }
+            return true;
         }
-        return true;
+
+        if (msg.type == MessageType.RestartSession) {
+            await hardSessionRestart(msg.tabId!);
+            sendResponse();
+            return true;
+        }
+
+        const tabId = sender?.tab?.id;
+        if (!tabId) return;
+
+        if (msg.type == MessageType.GetSession) {
+            const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
+            sendResponse(session);
+            return true;
+        }
+
+        const session = findSession(tabId);
+        if (!session || !msg.payload) return;
+
+        logEvent(session, msg.payload);
     }
-
-    const tabId = sender?.tab?.id;
-    if (!tabId) return;
-
-    if (msg.type == MessageType.GetSession) {
-        const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
-        sendResponse(session);
-        return true;
-    }
-
-    const session = findSession(tabId);
-    if (!session || !msg.payload) return;
-
-    logEvent(session, msg.payload);
-});
+);
 
 // ### FUNCTIONS
+
+async function hardSessionRestart(tabId: number) {
+    const tab = await chrome.tabs.get(tabId);
+    const url = tab.url;
+    if (!url || !/^https?:\/\//.test(url)) return;
+
+    await chrome.tabs.update(tabId, { url: 'about:blank' });
+    await chrome.browsingData.remove(
+        {},
+        {
+            cookies: true,
+            localStorage: true,
+            indexedDB: true,
+            cacheStorage: true,
+            serviceWorkers: true,
+            webSQL: true,
+            fileSystems: true,
+            appcache: true,
+            // optional, usually not needed for CMP but harmless for "clean slate":
+            cache: true
+        }
+    );
+    deleteSession(tabId);
+    await chrome.tabs.update(tabId, { url });
+}
 
 function evaluateHeaders(
     session: Session,
@@ -102,35 +135,41 @@ function evaluateHeaders(
     for (const header of setCookieHeaders) {
         if (!header) continue;
 
-        const cookieData: CookieData | null = registerCookie(session, header);
+        const cookieData: CookieData | null = parseAndCategorizeCookie(header);
 
         if (!cookieData) continue;
 
-        logEvent(session, {
-            sessionId: session.sessionId,
-            timestamp: timeStamp,
-            type: TabEventType.SetCookieViaHeader,
-            url: url,
-            meta: {
-                cookieData: cookieData
-            }
-        });
+        if (!session.cookies?.has(cookieData.signature!)) {
+            logEvent(session, {
+                sessionId: session.sessionId,
+                timestamp: timeStamp,
+                type: TabEventType.SetCookieViaHeader,
+                url: url,
+                meta: {
+                    cookieData: cookieData
+                }
+            });
+        }
+        persistCookieData(session, cookieData);
     }
 }
 
-function registerCookie(session: Session, header: string): CookieData | null {
+function parseAndCategorizeCookie(header: string): CookieData | null {
     let cookieData = parseCookieHeader(header);
 
     // If the header could be parsed, try to categorize the cookie
     if (cookieData) {
         cookieData = categorizeCookie(cookieData);
-        if (!session.cookies) {
-            session.cookies = new Map();
-        }
-        session.cookies.set(cookieData.signature!, cookieData);
     }
 
     return cookieData;
+}
+
+function persistCookieData(session: Session, cookieData: CookieData) {
+    if (!session.cookies) {
+        session.cookies = new Map();
+    }
+    session.cookies.set(cookieData.signature!, cookieData);
 }
 
 function ensureSession(tabId: number, url: string): Session {
@@ -176,6 +215,12 @@ function findSession(tabId: number): Session | undefined {
         return;
     }
     return session;
+}
+
+function deleteSession(tabId: number): void {
+    if (sessions.has(tabId)) {
+        sessions.delete(tabId);
+    }
 }
 
 function logEvent(session: Session, event: TabEvent) {
