@@ -83,6 +83,15 @@ chrome.runtime.onMessage.addListener(async (msg: Message, sender, sendResponse) 
 
     if (msg.type == MessageType.StopSession) {
         session.active = false;
+        chrome.action.setBadgeText({
+            text: 'STOP',
+            tabId: tabId
+        });
+
+        chrome.action.setBadgeBackgroundColor({
+            color: 'blue',
+            tabId: tabId
+        });
     }
 });
 

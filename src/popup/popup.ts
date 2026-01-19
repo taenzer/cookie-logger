@@ -10,7 +10,7 @@ async function render() {
     console.log('Rerender started');
     document.getElementById('tabId')!.innerHTML = (await getActiveTabId()).toString();
     await loadSession();
-    if (!session.active) {
+    if (!(session?.active ?? false)) {
         disableStopButton();
     }
     displayCookieCount();
@@ -88,7 +88,23 @@ async function stopSession() {
     render();
 }
 
-function exportSession() {}
+async function exportSession() {
+    await loadSession();
+    const json = JSON.stringify(session);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    chrome.downloads
+        .download({
+            url: url,
+            filename: 'cookie-log.json',
+            saveAs: true
+        })
+        .catch(() => {})
+        .finally(() => {
+            setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        });
+}
 
 async function getActiveTabId(): Promise<number> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
