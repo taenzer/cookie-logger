@@ -18,9 +18,9 @@ export type TabEventMeta = {
 };
 
 export enum TabEventType {
-    CookieChanged = 'cookie-changed',
+    CookieSet = 'cookie-set',
+    CookieRemoved = 'cookie-removed',
     SessionStart = 'session-started',
     SessionEnd = 'session-ended',
-    SetCookieViaHeader = 'set-cookie-via-header',
     Click = 'user-click'
 }

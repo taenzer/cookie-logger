@@ -1,3 +1,7 @@
+html{
+    box-sizing: border-box;
+}
+
 .w-full{
     width: 100%;
 }
@@ -48,5 +52,24 @@ body {
 
 #protocol ul .cookie, #protocol ul .timecode  {
     border-left: 2px solid #a5a3a3;
+    padding: 5px;
+}
+
+.entrypoint .wrapper {
+    max-width: 600px;
+    margin: auto;
+    background: #f7f5f5;
+    padding: 20px;
+    border: 1px solid;
+}
+
+.entrypoint .wrapper .warning{
+    background: #ffa50070;
+    padding: 1px 10px;
+}
+
+#siteList, #url, #startBtn{
+    display: block;
+    width: 100%;
     padding: 5px;
 }

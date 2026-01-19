@@ -11,7 +11,7 @@ async function render() {
     const tabId = await getActiveTabId();
     updateUiSessionId({ tabId: tabId });
     await loadSession();
-    if (!(session?.active ?? false)) {
+    if (!(session?.measurementActive ?? false)) {
         disableStopButton();
     }
     displayCookieCount();
@@ -39,7 +39,8 @@ function displayCookieCount() {
 
     for (const [category, cookies] of grouped) {
         const counter = document.createElement('div');
-        counter.innerHTML = `<p>${category}</p><p>${cookies.length}</p>`;
+        const deletedCookies = cookies.filter((cookie) => cookie.removed);
+        counter.innerHTML = `<p>${category}</p><p>${cookies.length - deletedCookies.length} (${deletedCookies.length} removed)</p>`;
         wrapper?.appendChild(counter);
     }
 }
@@ -66,7 +67,7 @@ async function restartSession() {
     const tabId = await getActiveTabId();
 
     chrome.runtime.sendMessage<Message, void>({
-        type: MessageType.RestartSession,
+        type: MessageType.RestartMeasurement,
         tabId: tabId
     });
     window.close();
@@ -83,7 +84,7 @@ async function stopSession() {
     };
 
     await chrome.runtime.sendMessage<Message, void>({
-        type: MessageType.StopSession,
+        type: MessageType.StopMeasurement,
         tabId: tabId,
         payload: tabEvent
     });

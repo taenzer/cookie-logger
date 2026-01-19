@@ -1,0 +1,63 @@
+<!doctype html>
+<html style="min-width: 500px;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Measurement Entrypoint</title>
+    <link href="app.css" rel="stylesheet"/>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+  </head>
+  <body class="entrypoint">
+    <div class="wrapper">
+        <header class="">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="font-size: 2em;">Cookie & Click Logger - Measurement Entrypoint</strong>
+            </div>
+          </div>
+        </header>
+        <main>
+            <p>Welcome! Use this dialog as startingpoint for your measurement. <strong>Please note the following warnings before starting:</strong></p>
+    
+            <div class="warning">
+                <p><strong>Warning</strong></p>
+                <ul>
+                    <li>The setting/editing/deletion of cookies can only be detected across the entire browser and cannot be assigned to a single tab. It is therefore important that only one tab is open in order to rule out external influences on the measurement.</li>
+                    <li>When the measurement starts, all tabs (except this one, which can remain open as it does not use cookies) are automatically closed and all browsing data (such as cookies, cache, local storage) is deleted.</li>
+                    <li>It is recommended that you create a separate browser profile for the measurement to avoid the loss of personal data (cookies, cache).</li>
+                </ul>
+            </div>
+    
+            <p>For measurement you can use one of the predifined websites of the following list, or enter a custom url down below. When you are ready just hit the "Start" Button.</p>
+            
+    
+            <form id="mForm">
+                <p>
+                    <select id="siteList">
+                        <option disabled selected>Choose from list</option>
+                        <option value="https://abc.com">abc.com</option>
+                        <option value="https://xyz.com">xyz.com</option>
+
+                    </select>
+                    <small>Hint: To simplify the measurement process for multiple pages, each click on the start button directly selects the next page in the list.</small>
+                </p>
+        
+                <p>
+                    <input id="url" required placeholder="http(s)://example.com"/>
+                </p>
+        
+                <button id="startBtn" type="submit">Start</button>
+            </form>
+    
+            <p>Please keep in mind to stop each measurement when you are done because otherwise no further measurements can be started!</p>
+         
+        </main>
+
+    </div>
+
+    <script src="../src/content/entrypoint.js"></script>
+    <script src="../dist/src/content/entrypoint.js"></script>
+
+
+  </body>
+</html>

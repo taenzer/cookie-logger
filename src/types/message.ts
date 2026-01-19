@@ -4,13 +4,19 @@ export type Message = {
     type: MessageType;
     tabId?: number;
     payload?: TabEvent;
+    measurementRequest?: MeasurementRequest;
+};
+
+export type MeasurementRequest = {
+    url: string;
+    keepTabId: number;
 };
 
 export enum MessageType {
-    JsCookieSet = 'js-cookie-set',
     Click = 'click',
     GetSession = 'get-session',
     GetSessionData = 'get-session-data',
-    RestartSession = 'restart-session',
-    StopSession = 'stop-session'
+    StartMeasurement = 'start-measurement',
+    RestartMeasurement = 'restart-measurement',
+    StopMeasurement = 'stop-measurement'
 }

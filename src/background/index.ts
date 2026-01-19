@@ -4,105 +4,142 @@ import type { CookieData } from '../types/cookie-data.js';
 import { MessageType, type Message } from '../types/message.js';
 import type { Session } from '../types/session.js';
 import { TabEventType, type TabEvent } from '../types/tab_event.js';
+import { closeAllTabsExcept } from './helper/browser-cleaner.js';
 import { categorizeCookie, initCookieDb } from './helper/cookie-db.js';
-import { parseCookieHeader } from './helper/cookie-parser.js';
+import { generateCookieSignature } from './helper/cookie-signature.js';
 
-/**
- * Event Listener - Gets fired, when extension icon is clicked
- */
-chrome.action.onClicked.addListener((tab) => {
-    console.log('Icon clicked!');
-    console.log(sessions);
-});
-
-/**
- * Event Listener - Gets fired, when tabs are changed
- */
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log(tab.url);
-    if (changeInfo.status === 'loading' && tab.url && tab.url.startsWith('http')) {
-        ensureSession(tabId, tab.url);
+chrome.tabs.onRemoved.addListener((tabId, _) => {
+    const session = findSession(tabId);
+    if (session) {
+        stopMeasurement(session);
     }
 });
 
-chrome.cookies.onChanged.addListener((changeInfo) => {
-    const { cookie, removed, cause } = changeInfo;
-    // console.log('COOKIE CHANGE', cookie);
+chrome.action.onClicked.addListener(async (tab) => {
+    const session = findSession(tab.id);
+    if (session) {
+        await chrome.action.setPopup({
+            tabId: session.tabId,
+            popup: 'assets/popup.html'
+        });
+        await chrome.action.openPopup();
+    } else {
+        const entryUrl = chrome.runtime.getURL('assets/entrypoint.html');
+        await chrome.tabs.create({ url: entryUrl, active: true });
+    }
 });
 
-chrome.webRequest.onHeadersReceived.addListener(
-    (details) => {
-        if (details.tabId < 0) return;
+chrome.cookies.onChanged.addListener(async (changeInfo) => {
+    const { cookie, removed, cause } = changeInfo;
+    const sessions = getActiveSessions();
+    if (sessions.length !== 1) return;
+    const timestamp = nowMs();
 
-        const session = findSession(details.tabId);
+    const session = sessions[0]!;
+    const cookieData: CookieData = await parseAndCategorizeCookie(cookie);
 
-        if (session && details.responseHeaders && session.active) {
-            evaluateHeaders(session, details.responseHeaders, details.url, details.timeStamp);
+    let eventType: TabEventType;
+    if (removed) {
+        if (cause == 'overwrite') return;
+        eventType = TabEventType.CookieRemoved;
+        cookieData.removed = true;
+    } else {
+        eventType = TabEventType.CookieSet;
+        cookieData.removed = false;
+    }
+    const shouldBeLogged: boolean = !session.cookies?.has(cookieData.signature!) || removed;
+    persistCookieData(session, cookieData);
+
+    const tabEvent: TabEvent = {
+        sessionId: session.sessionId,
+        timestamp: timestamp,
+        type: eventType,
+        url: session.url,
+        meta: {
+            cookieData: cookieData
         }
+    };
 
-        return { responseHeaders: details.responseHeaders };
-    },
-    { urls: ['http://*/*', 'https://*/*'] },
-    ['responseHeaders', 'extraHeaders']
-);
+    if (shouldBeLogged) {
+        logEvent(session, tabEvent);
+    }
+});
 
 chrome.runtime.onMessage.addListener(async (msg: Message, sender, sendResponse) => {
-    if (msg.type == MessageType.GetSessionData) {
-        const session = findSession(msg.tabId!);
-        if (session) {
-            sendResponse({
-                ...session,
-                cookies: session?.cookies?.values().toArray() ?? []
-            });
-            console.log(session);
-        } else {
-            sendResponse();
-        }
-        return true;
-    }
-
-    if (msg.type == MessageType.RestartSession) {
-        await hardSessionRestart(msg.tabId!);
-        sendResponse();
-        return true;
-    }
-
     const tabId = sender?.tab?.id ?? msg.tabId;
-    if (!tabId) return;
 
-    if (msg.type == MessageType.GetSession) {
-        const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
-        sendResponse(session);
-        return true;
-    }
-
-    const session = findSession(tabId);
-    if (!session || !msg.payload || !session.active) return;
-
-    logEvent(session, msg.payload);
-
-    if (msg.type == MessageType.StopSession) {
-        session.active = false;
-        chrome.action.setBadgeText({
-            text: 'STOP',
-            tabId: tabId
-        });
-
-        chrome.action.setBadgeBackgroundColor({
-            color: 'blue',
-            tabId: tabId
-        });
+    if (msg.type == MessageType.StartMeasurement) {
+        if (!msg.measurementRequest) return;
+        startMeasurement(msg.measurementRequest.url);
+        return;
+    } else {
+        const session = findSession(tabId);
+        if (!session) {
+            sendResponse();
+            return;
+        }
+        switch (msg.type) {
+            case MessageType.GetSessionData:
+            case MessageType.GetSession:
+                sendResponse({
+                    ...session,
+                    cookies: session?.cookies?.values().toArray() ?? []
+                });
+                return;
+            case MessageType.RestartMeasurement:
+                await restartMeasurement(session);
+                break;
+            case MessageType.Click:
+                if (msg.payload) logEvent(session, msg.payload);
+                break;
+            case MessageType.StopMeasurement:
+                if (msg.payload) logEvent(session, msg.payload);
+                stopMeasurement(session);
+                break;
+        }
+        sendResponse();
+        return;
     }
 });
 
 // ### FUNCTIONS
 
-async function hardSessionRestart(tabId: number) {
-    const tab = await chrome.tabs.get(tabId);
-    const url = tab.url;
-    if (!url || !/^https?:\/\//.test(url)) return;
+async function parseAndCategorizeCookie(cookie: chrome.cookies.Cookie): Promise<CookieData> {
+    const signature = await generateCookieSignature(cookie);
+    const data: CookieData = {
+        name: cookie.name,
+        domain: cookie.domain,
+        signature: signature,
+        removed: false
+    };
+    return categorizeCookie(data);
+}
 
-    await chrome.tabs.update(tabId, { url: 'about:blank' });
+async function restartMeasurement(session: Session) {
+    deleteSession(session.tabId);
+    await startMeasurement(session.url, session.tabId);
+}
+
+async function startMeasurement(url: string, tabId?: number) {
+    // If a measurement is still running, dont start another one
+    if (getActiveSessions().length !== 0) {
+        return;
+    }
+
+    await closeAllTabsExcept(tabId);
+
+    let tab: chrome.tabs.Tab;
+
+    if (tabId) {
+        tab = await chrome.tabs.get(tabId);
+        await chrome.tabs.update(tabId, { url: 'about:blank' });
+    } else {
+        tab = await chrome.tabs.create({
+            active: false,
+            url: 'about:blank'
+        });
+    }
+
     await chrome.browsingData.remove(
         {},
         {
@@ -118,53 +155,17 @@ async function hardSessionRestart(tabId: number) {
             cache: true
         }
     );
-    deleteSession(tabId);
-    await chrome.tabs.update(tabId, { url });
+    await createSession(tab.id!, url);
+    await chrome.tabs.update(tab.id, { url: url, active: true });
+    await chrome.action.setBadgeText({ tabId: tabId, text: 'REC' });
+    await chrome.action.setBadgeBackgroundColor({ tabId: tabId, color: 'red' });
 }
 
-function evaluateHeaders(
-    session: Session,
-    headers: chrome.webRequest.HttpHeader[],
-    url: string,
-    timeStamp: number
-) {
-    const setCookieHeaders = headers
-        // first, filter for only set-cookie headers
-        .filter((h) => h.name && h.name.toLowerCase() === 'set-cookie')
-        // get header values
-        .map((h) => h.value);
-
-    for (const header of setCookieHeaders) {
-        if (!header) continue;
-
-        const cookieData: CookieData | null = parseAndCategorizeCookie(header);
-
-        if (!cookieData) continue;
-
-        if (!session.cookies?.has(cookieData.signature!)) {
-            logEvent(session, {
-                sessionId: session.sessionId,
-                timestamp: timeStamp,
-                type: TabEventType.SetCookieViaHeader,
-                url: url,
-                meta: {
-                    cookieData: cookieData
-                }
-            });
-        }
-        persistCookieData(session, cookieData);
-    }
-}
-
-function parseAndCategorizeCookie(header: string): CookieData | null {
-    let cookieData = parseCookieHeader(header);
-
-    // If the header could be parsed, try to categorize the cookie
-    if (cookieData) {
-        cookieData = categorizeCookie(cookieData);
-    }
-
-    return cookieData;
+function stopMeasurement(session: Session) {
+    session.measurementActive = false;
+    sessions.set(session.tabId, session);
+    chrome.action.setBadgeText({ tabId: session.tabId, text: 'END' });
+    chrome.action.setBadgeBackgroundColor({ tabId: session.tabId, color: 'blue' });
 }
 
 function persistCookieData(session: Session, cookieData: CookieData) {
@@ -174,40 +175,48 @@ function persistCookieData(session: Session, cookieData: CookieData) {
     session.cookies.set(cookieData.signature!, cookieData);
 }
 
-function ensureSession(tabId: number, url: string): Session {
-    if (!sessions.has(tabId)) {
-        const sessionId: string = createSessionId(tabId);
-        const timestamp: number = nowMs();
-
-        const newSession: Session = {
-            sessionId: sessionId,
-            active: true,
-            t0: timestamp,
-            url: url
-        };
-        sessions.set(tabId, newSession);
-
-        logEvent(newSession, {
-            sessionId: sessionId,
-            timestamp: timestamp,
-            type: TabEventType.SessionStart,
-            url: url
-        });
-        chrome.action.setBadgeText({
-            text: 'REC',
-            tabId: tabId
-        });
-
-        chrome.action.setBadgeBackgroundColor({
-            color: 'red',
-            tabId: tabId
-        });
-    }
-
-    return findSession(tabId)!;
+function markCookieAsRemoved(session: Session, cookieData: CookieData) {
+    if (!session.cookies || !session.cookies.has(cookieData.signature!)) return;
+    session.cookies.set(cookieData.signature!, {
+        ...cookieData,
+        removed: true
+    });
 }
 
-function findSession(tabId: number): Session | undefined {
+async function createSession(tabId: number, url: string): Promise<Session> {
+    const sessionId: string = createSessionId(tabId);
+    const timestamp: number = nowMs();
+
+    const newSession: Session = {
+        tabId: tabId,
+        sessionId: sessionId,
+        measurementActive: true,
+        t0: timestamp,
+        url: url
+    };
+    sessions.set(tabId, newSession);
+
+    logEvent(newSession, {
+        sessionId: sessionId,
+        timestamp: timestamp,
+        type: TabEventType.SessionStart,
+        url: url
+    });
+
+    return newSession;
+}
+
+function getActiveSessions(): Session[] {
+    return (
+        sessions
+            ?.values()
+            .filter((session) => session.measurementActive)
+            .toArray() ?? []
+    );
+}
+
+function findSession(tabId: number | undefined): Session | undefined {
+    if (!tabId) return;
     const session = sessions.get(tabId);
     if (!session) {
         console.warn('Trying to access session  of tab #' + tabId + ' but no session exists');
@@ -241,13 +250,8 @@ function createSessionId(tabId: number): string {
 async function init() {
     await initCookieDb();
 
-    chrome.action.setBadgeText({
-        text: 'RDY'
-    });
-
-    chrome.action.setBadgeBackgroundColor({
-        color: 'green'
-    });
+    await chrome.action.setBadgeText({ text: 'RDY' });
+    await chrome.action.setBadgeBackgroundColor({ color: 'green' });
 }
 
 // ### DATA

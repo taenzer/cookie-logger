@@ -148,9 +148,9 @@ export function renderProtocol(events: TabEvent[]): void {
             cookieBatch.lastTs = e.timestamp;
 
             const cat = e.meta?.cookieData?.category ?? CookieCategory.Unknown;
-            if (e.type == TabEventType.SetCookieViaHeader) inc(cookieBatch.addedByCategory, cat, 1);
-            // else if (COOKIE_REMOVE.has(e.type))
-            //     inc(cookieBatch.removedByCategory, cat, 1);
+            if (e.type == TabEventType.CookieSet) inc(cookieBatch.addedByCategory, cat, 1);
+            else if (e.type == TabEventType.CookieRemoved)
+                inc(cookieBatch.removedByCategory, cat, 1);
 
             continue;
         }

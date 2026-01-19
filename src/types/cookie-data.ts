@@ -4,6 +4,7 @@ export type CookieData = {
     signature?: string;
     name?: string;
     domain?: string | undefined;
+    removed: boolean;
     category?: CookieCategory;
     confidence?: 'high' | 'medium' | 'low';
     cookieDbEntry?: CookieDbEntry;

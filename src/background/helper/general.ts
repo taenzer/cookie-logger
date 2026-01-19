@@ -1,4 +1,4 @@
-import type { ParsingResult } from './cookie-parser.js';
+import type { ParsingResult } from './cookie-signature.js';
 
 export function normalizeCookieName(name?: string): string {
     return (name ?? '').trim().toLowerCase();

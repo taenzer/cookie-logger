@@ -3,7 +3,8 @@ import type { TabEvent } from './tab_event.js';
 
 export type Session = {
     sessionId: string;
-    active: boolean;
+    tabId: number;
+    measurementActive: boolean;
     t0: number;
     events?: TabEvent[];
     url: string;
