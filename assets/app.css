@@ -23,3 +23,13 @@ body {
     border: solid red 1px;
     color: #d70000;
 }
+
+#copyIdButton{
+    font-size: 0.8em;
+    padding: 1px 3px;
+    transition: all .3s;
+}
+
+#copyIdButton.ok{
+    background: #cefdce;
+}

@@ -8,7 +8,8 @@ let session: TransferableSession;
 
 async function render() {
     console.log('Rerender started');
-    document.getElementById('tabId')!.innerHTML = (await getActiveTabId()).toString();
+    const tabId = await getActiveTabId();
+    updateUiSessionId({ tabId: tabId });
     await loadSession();
     if (!(session?.active ?? false)) {
         disableStopButton();
@@ -58,6 +59,7 @@ async function loadSession() {
     }
 
     session = resp;
+    updateUiSessionId({ sessionId: resp?.sessionId });
 }
 
 async function restartSession() {
@@ -97,7 +99,7 @@ async function exportSession() {
     chrome.downloads
         .download({
             url: url,
-            filename: 'cookie-log.json',
+            filename: `${session.sessionId}-cookie-log.json`,
             saveAs: true
         })
         .catch(() => {})
@@ -121,10 +123,38 @@ function disableStopButton() {
     btn.disabled = true;
 }
 
+function updateUiSessionId(data: { sessionId?: string; tabId?: number }) {
+    const wrap = document.getElementById('sessionId');
+    if (!wrap) return;
+
+    if (data.sessionId) {
+        const fragments = data.sessionId.split('-');
+        wrap.innerHTML = `Session-Id: <strong>${fragments[0]}</strong>-${fragments[1]}-${fragments[2]}`;
+    } else if (data.tabId) {
+        wrap.innerText = `Tab-Id: ${data.tabId}`;
+    }
+}
+
+async function copyIdToClipboard() {
+    const btn = document.getElementById('copyIdButton');
+    const id: string = session ? session.sessionId : (await getActiveTabId()).toString();
+    await navigator.clipboard.writeText(id);
+
+    if (!btn) return;
+    btn.innerText = 'Copied!';
+    btn.classList.add('ok');
+    setTimeout(() => {
+        btn.classList.remove('ok');
+        btn.innerText = 'Copy';
+    }, 1_000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('refreshButton')?.addEventListener('click', render);
     document.getElementById('restartButton')?.addEventListener('click', restartSession);
     document.getElementById('endButton')?.addEventListener('click', stopSession);
     document.getElementById('exportButton')?.addEventListener('click', exportSession);
+    document.getElementById('copyIdButton')?.addEventListener('click', copyIdToClipboard);
+
     render();
 });
