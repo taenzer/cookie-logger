@@ -10,10 +10,9 @@ document.addEventListener('click', clickHandler, opts);
 
 function clickHandler(event: MouseEvent) {
     if (!session) {
-        console.log('CLICK WITHOUT SESSION');
         return;
     }
-    console.log('CLICK');
+
     const target = event.target;
     const text = (getTargetElementText(target) ?? '').slice(0, 120);
 

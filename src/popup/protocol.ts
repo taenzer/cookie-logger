@@ -23,7 +23,8 @@ export function renderProtocol(events: TabEvent[]): void {
 
     const MILESTON_EVENTS = new Set([
         TabEventType.Click,
-        TabEventType.SessionStart
+        TabEventType.SessionStart,
+        TabEventType.SessionEnd
     ]);
 
     const isMilestone = (e: TabEvent) => MILESTON_EVENTS.has(e.type);
@@ -63,8 +64,7 @@ export function renderProtocol(events: TabEvent[]): void {
     const ul = document.createElement('ul');
     ul.style.margin = '0';
     ul.style.paddingLeft = '18px';
-    ul.style.fontFamily =
-        'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+    ul.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
     ul.style.fontSize = '13px';
     ul.style.lineHeight = '1.35';
 
@@ -100,9 +100,7 @@ export function renderProtocol(events: TabEvent[]): void {
         };
     };
 
-    const flushCookieBatch = (
-        batch: CookieBatch | null
-    ): CookieBatch | null => {
+    const flushCookieBatch = (batch: CookieBatch | null): CookieBatch | null => {
         if (!batch) return null;
 
         const addedTotal = sumMap(batch.addedByCategory);
@@ -132,10 +130,10 @@ export function renderProtocol(events: TabEvent[]): void {
             addListItem(['Session gestartet']);
             return;
         }
-        // if (SESSION_END.has(e.type)) {
-        //     addListItem(['End Session']);
-        //     return;
-        // }
+        if (e.type == TabEventType.SessionEnd) {
+            addListItem(['End Session']);
+            return;
+        }
 
         if (e.type == TabEventType.Click) {
             const txt = safeSnippet(e.meta?.clickData?.text, 140);
@@ -157,8 +155,7 @@ export function renderProtocol(events: TabEvent[]): void {
             cookieBatch.lastTs = e.timestamp;
 
             const cat = e.meta?.cookieData?.category ?? CookieCategory.Unknown;
-            if (e.type == TabEventType.SetCookieViaHeader)
-                inc(cookieBatch.addedByCategory, cat, 1);
+            if (e.type == TabEventType.SetCookieViaHeader) inc(cookieBatch.addedByCategory, cat, 1);
             // else if (COOKIE_REMOVE.has(e.type))
             //     inc(cookieBatch.removedByCategory, cat, 1);
 

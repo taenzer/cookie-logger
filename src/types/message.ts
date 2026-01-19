@@ -11,5 +11,6 @@ export enum MessageType {
     Click = 'click',
     GetSession = 'get-session',
     GetSessionData = 'get-session-data',
-    RestartSession = 'restart-session'
+    RestartSession = 'restart-session',
+    StopSession = 'stop-session'
 }

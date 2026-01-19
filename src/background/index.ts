@@ -20,11 +20,7 @@ chrome.action.onClicked.addListener((tab) => {
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     console.log(tab.url);
-    if (
-        changeInfo.status === 'loading' &&
-        tab.url &&
-        tab.url.startsWith('http')
-    ) {
+    if (changeInfo.status === 'loading' && tab.url && tab.url.startsWith('http')) {
         ensureSession(tabId, tab.url);
     }
 });
@@ -41,12 +37,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         const session = findSession(details.tabId);
 
         if (session && details.responseHeaders) {
-            evaluateHeaders(
-                session,
-                details.responseHeaders,
-                details.url,
-                details.timeStamp
-            );
+            evaluateHeaders(session, details.responseHeaders, details.url, details.timeStamp);
         }
 
         return { responseHeaders: details.responseHeaders };
@@ -55,43 +46,45 @@ chrome.webRequest.onHeadersReceived.addListener(
     ['responseHeaders', 'extraHeaders']
 );
 
-chrome.runtime.onMessage.addListener(
-    async (msg: Message, sender, sendResponse) => {
-        if (msg.type == MessageType.GetSessionData) {
-            const session = findSession(msg.tabId!);
-            if (session) {
-                sendResponse({
-                    ...session,
-                    cookies: session?.cookies?.values().toArray() ?? []
-                });
-                console.log(session);
-            } else {
-                sendResponse();
-            }
-            return true;
-        }
-
-        if (msg.type == MessageType.RestartSession) {
-            await hardSessionRestart(msg.tabId!);
+chrome.runtime.onMessage.addListener(async (msg: Message, sender, sendResponse) => {
+    if (msg.type == MessageType.GetSessionData) {
+        const session = findSession(msg.tabId!);
+        if (session) {
+            sendResponse({
+                ...session,
+                cookies: session?.cookies?.values().toArray() ?? []
+            });
+            console.log(session);
+        } else {
             sendResponse();
-            return true;
         }
-
-        const tabId = sender?.tab?.id;
-        if (!tabId) return;
-
-        if (msg.type == MessageType.GetSession) {
-            const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
-            sendResponse(session);
-            return true;
-        }
-
-        const session = findSession(tabId);
-        if (!session || !msg.payload) return;
-
-        logEvent(session, msg.payload);
+        return true;
     }
-);
+
+    if (msg.type == MessageType.RestartSession) {
+        await hardSessionRestart(msg.tabId!);
+        sendResponse();
+        return true;
+    }
+
+    const tabId = sender?.tab?.id ?? msg.tabId;
+    if (!tabId) return;
+
+    if (msg.type == MessageType.GetSession) {
+        const session = ensureSession(tabId, sender.tab?.url ?? 'undef');
+        sendResponse(session);
+        return true;
+    }
+
+    const session = findSession(tabId);
+    if (!session || !msg.payload || !session.active) return;
+
+    logEvent(session, msg.payload);
+
+    if (msg.type == MessageType.StopSession) {
+        session.active = false;
+    }
+});
 
 // ### FUNCTIONS
 
@@ -179,6 +172,7 @@ function ensureSession(tabId: number, url: string): Session {
 
         const newSession: Session = {
             sessionId: sessionId,
+            active: true,
             t0: timestamp,
             url: url
         };
@@ -207,11 +201,7 @@ function ensureSession(tabId: number, url: string): Session {
 function findSession(tabId: number): Session | undefined {
     const session = sessions.get(tabId);
     if (!session) {
-        console.warn(
-            'Trying to access session  of tab #' +
-                tabId +
-                ' but no session exists'
-        );
+        console.warn('Trying to access session  of tab #' + tabId + ' but no session exists');
         return;
     }
     return session;
