@@ -33,3 +33,20 @@ body {
 #copyIdButton.ok{
     background: #cefdce;
 }
+
+#protocol ul{
+    list-style: none;
+    padding: 0;
+}
+
+#protocol ul .milestone{
+    background: #dedede;
+    padding: 1px 6px;
+    display: inline-block;
+    border: 2px solid #a5a3a3;
+}
+
+#protocol ul .cookie, #protocol ul .timecode  {
+    border-left: 2px solid #a5a3a3;
+    padding: 5px;
+}

@@ -60,24 +60,19 @@ export function renderProtocol(events: TabEvent[]): void {
         return v.length > max ? `${v.slice(0, max)}…` : v;
     };
 
-    // UI helpers (DOM-safe via textContent)
     const ul = document.createElement('ul');
-    ul.style.margin = '0';
-    ul.style.paddingLeft = '18px';
-    ul.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
-    ul.style.fontSize = '13px';
-    ul.style.lineHeight = '1.35';
-
     host.appendChild(ul);
 
-    const addListItem = (lines: string[]) => {
+    const addListItem = (lines: string[], classes?: string[]) => {
         const li = document.createElement('li');
-        li.style.margin = '6px 0';
+        if (classes) {
+            li.classList.add(...classes);
+        }
 
-        // Render multiple lines inside one bullet (to mimic your visual structure)
+        // Render multiple lines inside one bullet
         for (let i = 0; i < lines.length; i++) {
             const line = document.createElement('div');
-            line.textContent = lines[i] ?? '';
+            line.innerHTML = lines[i] ?? '';
             if (i > 0) line.style.marginLeft = '0px';
             li.appendChild(line);
         }
@@ -87,7 +82,7 @@ export function renderProtocol(events: TabEvent[]): void {
     const addConnector = (ms: number) => {
         // A connector line shown *between* two rendered entries
         // e.g. "| 500ms"
-        addListItem([`| ${formatMs(ms)}`]);
+        addListItem([`&#128337; ${formatMs(ms)}`], ['timecode']);
     };
 
     const ensureBatch = (b: CookieBatch | null, ts: number): CookieBatch => {
@@ -112,37 +107,35 @@ export function renderProtocol(events: TabEvent[]): void {
 
         if (addedTotal > 0) {
             lines.push(
-                `| + ${addedTotal} Cookies (${formatCategoryBreakdown(batch.addedByCategory)})`
+                `+ ${addedTotal} Cookies (${formatCategoryBreakdown(batch.addedByCategory)})`
             );
         }
         if (removedTotal > 0) {
             lines.push(
-                `| - ${removedTotal} Cookies (${formatCategoryBreakdown(batch.removedByCategory)})`
+                `- ${removedTotal} Cookies (${formatCategoryBreakdown(batch.removedByCategory)})`
             );
         }
 
-        addListItem(lines);
+        addListItem(lines, ['cookie']);
         return null;
     };
 
     const renderMilestone = (e: TabEvent) => {
         if (e.type == TabEventType.SessionStart) {
-            addListItem(['Session gestartet']);
+            addListItem(['Session started'], ['milestone', 'session-start']);
             return;
         }
         if (e.type == TabEventType.SessionEnd) {
-            addListItem(['End Session']);
+            addListItem(['End Session'], ['milestone', 'session-end']);
             return;
         }
 
         if (e.type == TabEventType.Click) {
             const txt = safeSnippet(e.meta?.clickData?.text, 140);
             const details = txt ?? '';
-            addListItem([`Click (${details})`]);
+            addListItem([`Click ('${details}')`], ['milestone', 'click']);
             return;
         }
-        // Fallback
-        addListItem([`Event: ${e.type}`]);
     };
 
     // Main scan: cookie events are grouped until next milestone

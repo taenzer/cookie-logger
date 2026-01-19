@@ -36,7 +36,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
         const session = findSession(details.tabId);
 
-        if (session && details.responseHeaders) {
+        if (session && details.responseHeaders && session.active) {
             evaluateHeaders(session, details.responseHeaders, details.url, details.timeStamp);
         }
 
