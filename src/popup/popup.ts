@@ -89,6 +89,7 @@ async function stopSession() {
         payload: tabEvent
     });
     render();
+    await exportSession();
 }
 
 async function exportSession() {
