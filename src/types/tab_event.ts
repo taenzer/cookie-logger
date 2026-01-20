@@ -3,7 +3,6 @@ import type { CookieData } from './cookie-data.js';
 export type TabEvent = {
     type: TabEventType;
     url: string;
-    sessionId: string;
     timestamp: number;
     meta?: TabEventMeta;
 };

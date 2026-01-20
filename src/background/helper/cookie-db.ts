@@ -1,10 +1,5 @@
 import { CookieCategory, type CookieData } from '../../types/cookie-data.js';
-import {
-    isSubdomainOf,
-    normalizeCookieName,
-    normalizeDomain,
-    wildcardToRegex
-} from './general.js';
+import { isSubdomainOf, normalizeCookieName, normalizeDomain, wildcardToRegex } from './general.js';
 
 export type CookieDbEntry = {
     id: string;
@@ -20,8 +15,7 @@ export async function initCookieDb() {
     const url = chrome.runtime.getURL('assets/open-cookie-database.json');
     const res = await fetch(url);
 
-    if (!res.ok)
-        throw new Error(`Initialization of CookieDB Failed: ${res.status}`);
+    if (!res.ok) throw new Error(`Initialization of CookieDB Failed: ${res.status}`);
 
     const raw = (await res.json()) as Record<string, CookieDbEntry[]>;
 

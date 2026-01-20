@@ -51,7 +51,6 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
     persistCookieData(session, cookieData);
 
     const tabEvent: TabEvent = {
-        sessionId: session.sessionId,
         timestamp: timestamp,
         type: eventType,
         url: session.url,
@@ -197,7 +196,6 @@ async function createSession(tabId: number, url: string): Promise<Session> {
     sessions.set(tabId, newSession);
 
     logEvent(newSession, {
-        sessionId: sessionId,
         timestamp: timestamp,
         type: TabEventType.SessionStart,
         url: url

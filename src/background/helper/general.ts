@@ -1,5 +1,3 @@
-import type { ParsingResult } from './cookie-signature.js';
-
 export function normalizeCookieName(name?: string): string {
     return (name ?? '').trim().toLowerCase();
 }
@@ -24,14 +22,6 @@ export function normalizePath(path?: string): string | undefined {
     if (!p) return undefined;
     if (!p.startsWith('/')) p = '/' + p;
     return p;
-}
-
-export function normalizeSameSite(v: string): ParsingResult['sameSite'] {
-    const s = (v ?? '').trim().toLowerCase();
-    if (s === 'lax') return 'lax';
-    if (s === 'strict') return 'strict';
-    if (s === 'none') return 'none';
-    return 'unspecified';
 }
 
 export function isSubdomainOf(child: string, parent: string): boolean {

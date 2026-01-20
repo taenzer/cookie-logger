@@ -77,7 +77,6 @@ async function stopSession() {
     const tabId = await getActiveTabId();
 
     const tabEvent: TabEvent = {
-        sessionId: session.sessionId,
         timestamp: Date.now(),
         type: TabEventType.SessionEnd,
         url: location.href
@@ -94,7 +93,7 @@ async function stopSession() {
 
 async function exportSession() {
     await loadSession();
-    const json = JSON.stringify(session);
+    const json = JSON.stringify(session, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 

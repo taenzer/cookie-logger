@@ -17,7 +17,6 @@ function clickHandler(event: MouseEvent) {
     const text = (getTargetElementText(target) ?? '').slice(0, 120);
 
     const tabEvent: TabEvent = {
-        sessionId: session.sessionId,
         timestamp: nowMs(),
         type: TabEventType.Click,
         url: location.href,
