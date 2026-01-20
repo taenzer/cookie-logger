@@ -48,8 +48,7 @@ export function renderProtocol(events: TabEvent[]): void {
 
     const formatCategoryBreakdown = (m: Map<string, number>): string => {
         const parts = [...m.entries()]
-            .filter(([, n]) => n > 0)
-            .sort((a, b) => b[1] - a[1])
+            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
             .map(([cat, n]) => `${n}x ${cat}`);
         return parts.length ? parts.join(', ') : '—';
     };
@@ -115,6 +114,20 @@ export function renderProtocol(events: TabEvent[]): void {
                 `- ${removedTotal} Cookies (${formatCategoryBreakdown(batch.removedByCategory)})`
             );
         }
+
+        const netByCategory = new Map<string, number>();
+        const keys = new Set<CookieCategory>([
+            ...batch.addedByCategory.keys(),
+            ...batch.removedByCategory.keys()
+        ]);
+
+        for (const k of keys) {
+            const net = (batch.addedByCategory.get(k) ?? 0) - (batch.removedByCategory.get(k) ?? 0);
+            if (net !== 0) netByCategory.set(k, net);
+        }
+        const netTotal = addedTotal - removedTotal;
+
+        lines.push(`<strong>= ${netTotal} (${formatCategoryBreakdown(netByCategory)})</strong>`);
 
         addListItem(lines, ['cookie']);
         return null;
