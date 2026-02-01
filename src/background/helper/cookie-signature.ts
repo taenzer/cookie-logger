@@ -1,3 +1,7 @@
+/**
+ * Build a deterministic identity string for a cookie based on name, domain, path
+ * and partition-related attributes. The result is later hashed to a signature.
+ */
 function cookieIdentityString(cookie: chrome.cookies.Cookie): string {
     const name = cookie.name ?? '';
     const domain = (cookie.domain ?? '').replace(/^\./, '').toLowerCase();
@@ -19,6 +23,9 @@ function cookieIdentityString(cookie: chrome.cookies.Cookie): string {
     ].join('|');
 }
 
+/**
+ * Convert ArrayBuffer to lowercase hex string.
+ */
 function toHex(buf: ArrayBuffer): string {
     const bytes = new Uint8Array(buf);
     let hex = '';
@@ -28,6 +35,9 @@ function toHex(buf: ArrayBuffer): string {
     return hex;
 }
 
+/**
+ * Generate a stable signature for a cookie using SHA-256 over the identity string.
+ */
 export async function generateCookieSignature(cookie: chrome.cookies.Cookie): Promise<string> {
     const s = cookieIdentityString(cookie);
     const data = new TextEncoder().encode(s);

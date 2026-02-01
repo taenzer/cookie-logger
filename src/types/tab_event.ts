@@ -1,5 +1,8 @@
 import type { CookieData } from './cookie-data.js';
 
+/**
+ * Represents an event that occurred in a tracked browser tab.
+ */
 export type TabEvent = {
     type: TabEventType;
     url: string;
@@ -16,6 +19,9 @@ export type TabEventMeta = {
     };
 };
 
+/**
+ * Enum for the different types of events that can occur in a tracked browser tab.
+ */
 export enum TabEventType {
     CookieSet = 'cookie-set',
     CookieRemoved = 'cookie-removed',

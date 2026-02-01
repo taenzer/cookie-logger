@@ -1,5 +1,8 @@
 import type { TabEvent } from './tab_event.js';
 
+/**
+ * Internal message structure used for runtime communication between content/popup/background.
+ */
 export type Message = {
     type: MessageType;
     tabId?: number;

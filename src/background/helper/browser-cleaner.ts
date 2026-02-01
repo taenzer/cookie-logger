@@ -1,3 +1,6 @@
+/**
+ * Heuristics to detect browser internal/extension pages so they are preserved when closing tabs.
+ */
 function isBrowserExtensionsPage(url: string): boolean {
     // chrome://extensions, edge://extensions, brave://extensions, etc.
     try {
@@ -13,12 +16,18 @@ function isBrowserExtensionsPage(url: string): boolean {
     }
 }
 
+/**
+ * Whether the given URL is part of our extension UI (chrome-extension://...)
+ */
 function isOurExtensionPage(url: string): boolean {
     // Base: chrome-extension://<EXTENSION_ID>/
     const base = chrome.runtime.getURL('');
     return url.startsWith(base);
 }
 
+/**
+ * Close all tabs except the optional keepTabId, ignoring internal/extension pages and our own UI.
+ */
 export async function closeAllTabsExcept(keepTabId?: number): Promise<void> {
     const tabs = await chrome.tabs.query({});
 

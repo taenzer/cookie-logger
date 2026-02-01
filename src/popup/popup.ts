@@ -1,3 +1,11 @@
+/**
+ * Popup UI controller.
+ *
+ * Responsible for loading the current session data from the background script,
+ * rendering counts and protocol, handling user actions (restart/stop/export) and
+ * updating the small popup UI.
+ */
+
 import { CookieCategory, type CookieData } from '../types/cookie-data.js';
 import { MessageType, type Message } from '../types/message.js';
 import type { TransferableSession } from '../types/session.js';
@@ -6,6 +14,9 @@ import { renderProtocol } from './protocol.js';
 
 let session: TransferableSession;
 
+/**
+ * Render the popup UI: refresh session info, cookie counters and protocol view.
+ */
 async function render() {
     console.log('Rerender started');
     const tabId = await getActiveTabId();
@@ -18,6 +29,9 @@ async function render() {
     renderProtocol(session?.events ?? []);
 }
 
+/**
+ * Update cookie counter display grouped by category.
+ */
 function displayCookieCount() {
     const wrapper = document.getElementById('cookieCounter');
     if (!session || !wrapper) return;
@@ -45,6 +59,9 @@ function displayCookieCount() {
     }
 }
 
+/**
+ * Load session data from background for the active tab.
+ */
 async function loadSession() {
     const tabId = await getActiveTabId();
     const resp = await chrome.runtime.sendMessage<Message, TransferableSession>({
@@ -63,6 +80,9 @@ async function loadSession() {
     updateUiSessionId({ sessionId: resp?.sessionId });
 }
 
+/**
+ * Restart measurement for current tab (delegates to background).
+ */
 async function restartSession() {
     const tabId = await getActiveTabId();
 
@@ -73,6 +93,9 @@ async function restartSession() {
     window.close();
 }
 
+/**
+ * Stop measurement and export session afterwards.
+ */
 async function stopSession() {
     const tabId = await getActiveTabId();
 
@@ -91,6 +114,9 @@ async function stopSession() {
     await exportSession();
 }
 
+/**
+ * Export current session as JSON and trigger download.
+ */
 async function exportSession() {
     await loadSession();
     const json = JSON.stringify(session, null, 2);
@@ -109,6 +135,9 @@ async function exportSession() {
         });
 }
 
+/**
+ * Get the active tab id in current window.
+ */
 async function getActiveTabId(): Promise<number> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tabId = tabs[0]?.id;
@@ -116,6 +145,9 @@ async function getActiveTabId(): Promise<number> {
     return tabId;
 }
 
+/**
+ * Disable the stop button when the session is already ended.
+ */
 function disableStopButton() {
     const btn = document.getElementById('endButton') as HTMLInputElement;
     if (!btn) return;
@@ -124,6 +156,9 @@ function disableStopButton() {
     btn.disabled = true;
 }
 
+/**
+ * Update the UI element that shows the session id / tab id.
+ */
 function updateUiSessionId(data: { sessionId?: string; tabId?: number }) {
     const wrap = document.getElementById('sessionId');
     if (!wrap) return;
@@ -136,6 +171,9 @@ function updateUiSessionId(data: { sessionId?: string; tabId?: number }) {
     }
 }
 
+/**
+ * Copy session id (or tab id fallback) to clipboard and provide visual feedback.
+ */
 async function copyIdToClipboard() {
     const btn = document.getElementById('copyIdButton');
     const id: string = session ? session.sessionId : (await getActiveTabId()).toString();

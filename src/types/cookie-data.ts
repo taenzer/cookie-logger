@@ -1,5 +1,8 @@
 import type { CookieDbEntry } from '../background/helper/cookie-db.js';
 
+/**
+ * Data structure that represents a cookie observed during a session.
+ */
 export type CookieData = {
     signature?: string;
     name?: string;

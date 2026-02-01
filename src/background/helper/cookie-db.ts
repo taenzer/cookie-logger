@@ -1,6 +1,16 @@
+/**
+ * Cookie DB utilities
+ *
+ * Loads a JSON cookie database and provides a best-effort categorization function
+ * that scores candidate DB entries against an observed cookie name and domain.
+ */
+
 import { CookieCategory, type CookieData } from '../../types/cookie-data.js';
 import { isSubdomainOf, normalizeCookieName, normalizeDomain, wildcardToRegex } from './general.js';
 
+/**
+ * Single entry in the external cookie database.
+ */
 export type CookieDbEntry = {
     id: string;
     cookie: string;
@@ -9,8 +19,13 @@ export type CookieDbEntry = {
     description?: string;
 };
 
+// In-memory DB after initialization
 let db: CookieDbEntry[];
 
+/**
+ * Initialize the cookie DB by loading the JSON asset shipped with the extension.
+ * Throws if fetch fails.
+ */
 export async function initCookieDb() {
     const url = chrome.runtime.getURL('assets/open-cookie-database.json');
     const res = await fetch(url);
@@ -23,6 +38,10 @@ export async function initCookieDb() {
     db = data;
 }
 
+/**
+ * Categorize an observed cookie using the local DB.
+ * Returns the input CookieData enriched with category, confidence and the matched DB entry (if any).
+ */
 export function categorizeCookie(input: CookieData): CookieData {
     if (db == undefined || !db) {
         input.category = CookieCategory.Unknown;
@@ -67,10 +86,11 @@ export function categorizeCookie(input: CookieData): CookieData {
     };
 }
 
-/// Normalizers
-
-/// Scoring
-
+/**
+ * Score how well a DB entry matches an observed cookie name and domain.
+ * A zero score means "no match". The returned object contains the original entry
+ * and the computed numerical score.
+ */
 function scoreEntry(
     cookieName: string,
     cookieDomain: string | undefined,
@@ -79,52 +99,52 @@ function scoreEntry(
     const entryCookie = normalizeCookieName(entry.cookie);
     if (!entryCookie) return { entry, score: 0 };
 
-    // 1) Cookie-Name Matching
+    // 1) Cookie name matching — if name doesn't match at all, this entry is ignored
     const nameScore = scoreCookieName(cookieName, entryCookie);
     if (nameScore === 0) return { entry, score: 0 };
 
-    // 2) Domain Matching (falls DB-Domain vorhanden: muss passen)
+    // 2) Domain matching — when the DB entry specifies a domain, it must be compatible
     const entryDomain = normalizeDomain(entry.domain);
 
     let domainScore = 0;
     if (entryDomain) {
         if (!cookieDomain) {
-            // Input hat keine Domain => schwächerer Treffer möglich, aber nur "low"
+            // Observed cookie has no domain information -> weaker match
             domainScore = 5;
         } else if (cookieDomain === entryDomain) {
-            domainScore = 40; // exakt
+            domainScore = 40; // exact domain match
         } else if (isSubdomainOf(cookieDomain, entryDomain)) {
-            domainScore = 25; // parent-domain passt (z.B. foo.example.com vs example.com)
+            domainScore = 25; // cookie domain is a subdomain of DB domain
         } else {
-            return { entry, score: 0 }; // DB sagt Domain, aber passt nicht
+            return { entry, score: 0 }; // DB requires a specific domain that doesn't match
         }
     } else {
-        // DB-Eintrag ohne Domain: generischer Treffer
+        // DB entry without a domain is a generic match
         domainScore = cookieDomain ? 10 : 5;
     }
 
-    // 3) Gesamtscore
-    // Name ist wichtiger als Domain, aber Domain macht Confidence hoch.
     const score = nameScore + domainScore;
 
     return { entry, score };
 }
 
+/**
+ * Score cookie name matching between an observed name and a DB pattern.
+ * Returns a numeric score (higher is better). Uses exact match, wildcard patterns
+ * and a conservative prefix heuristic.
+ */
 function scoreCookieName(actual: string, pattern: string): number {
-    // Exakt (case-insensitive)
+    // Exact match
     if (actual === pattern) return 60;
 
-    // Optional: Prefix / Wildcard Matching
-    // Beispiele:
-    //  - pattern "ga_*" matcht "ga_123"
-    //  - pattern "_ga" matcht exakt nur oben, nicht als prefix
+    // Wildcard matching (pattern contains '*')
     if (pattern.includes('*')) {
         const re = wildcardToRegex(pattern);
         if (re.test(actual)) return 45;
     }
 
-    // Prefix-Strategie (konservativ): wenn DB z.B. "__utm" und Cookie "__utma"
-    // Nur sinnvoll, wenn ihr so eine DB pflegt. Sonst entfernen.
+    // Conservative prefix strategy: useful for DB entries like "__utm" and cookies like "__utma"
+    // Only apply when the pattern is at least 3 characters long.
     if (actual.startsWith(pattern) && pattern.length >= 3) return 30;
 
     return 0;

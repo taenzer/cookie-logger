@@ -1,7 +1,13 @@
+/**
+ * Normalize cookie name to a lowercased trimmed string.
+ */
 export function normalizeCookieName(name?: string): string {
     return (name ?? '').trim().toLowerCase();
 }
 
+/**
+ * Normalize domain: remove leading dots, schema and path, return hostname only.
+ */
 export function normalizeDomain(domain?: string): string {
     if (!domain) return '';
     let d = domain.trim().toLowerCase();
@@ -16,6 +22,9 @@ export function normalizeDomain(domain?: string): string {
     return d || '';
 }
 
+/**
+ * Normalize path; ensure leading slash.
+ */
 export function normalizePath(path?: string): string | undefined {
     if (!path) return undefined;
     let p = path.trim();
@@ -24,11 +33,17 @@ export function normalizePath(path?: string): string | undefined {
     return p;
 }
 
+/**
+ * Returns true if the child domain is equal to or a subdomain of the parent.
+ */
 export function isSubdomainOf(child: string, parent: string): boolean {
     if (child === parent) return true;
     return child.endsWith('.' + parent);
 }
 
+/**
+ * Convert a wildcard pattern like 'ga_*' into a case-insensitive RegExp.
+ */
 export function wildcardToRegex(pattern: string): RegExp {
     // Escape regex specials exept *
     const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&');
@@ -36,6 +51,9 @@ export function wildcardToRegex(pattern: string): RegExp {
     return new RegExp(reStr, 'i');
 }
 
+/**
+ * Trim wrapping single or double quotes from the input string.
+ */
 export function trimWrappingQuotes(input: string): string {
     if (
         (input.startsWith('"') && input.endsWith('"')) ||

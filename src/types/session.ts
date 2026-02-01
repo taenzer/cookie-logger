@@ -1,6 +1,9 @@
 import type { CookieData } from './cookie-data.js';
 import type { TabEvent } from './tab_event.js';
 
+/**
+ * In-memory representation of an active (or finished) measurement session.
+ */
 export type Session = {
     sessionId: string;
     tabId: number;

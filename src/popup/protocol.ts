@@ -1,3 +1,8 @@
+/**
+ * Protocol renderer for the popup. Takes a sequence of TabEvent objects and renders
+ * a human-readable timeline grouped into cookie batches and milestone events.
+ */
+
 import { CookieCategory } from '../types/cookie-data.js';
 import { TabEventType, type TabEvent } from '../types/tab_event.js';
 
